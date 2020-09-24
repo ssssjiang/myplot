@@ -7,7 +7,7 @@ import collections
 from enum import Enum
 
 import matplotlib as mpl
-from myslam.tools.settings import SETTINGS
+from myplot_tools.tools.settings import SETTINGS
 
 mpl.use(SETTINGS.plot_backend)
 
@@ -21,6 +21,6 @@ from matplotlib.transforms import Affine2D
 import numpy as np
 import seaborn as sns
 
-from myslam import MyslamException
-from myslam.tools import user
-from myslam.core import trajectory
+from myplot_tools import MyException
+from myplot_tools.tools import user
+from myplot_tools.core import trajectory

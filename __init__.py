@@ -11,9 +11,9 @@ except ImportError:
 logging.getLogger(__name__).addHandler(NullHandler())
 
 
-class MyslamException(Exception):
+class MyException(Exception):
     def __init__(self, *args, **kwargs):
         # Python 3 base exception doesn't have "message" anymore, only args.
         # We restore it here for convenience.
         self.message = args[0] if len(args) >= 1 else ""
-        super(MyslamException, self).__init__(*args, **kwargs)
+        super(MyException, self).__init__(*args, **kwargs)

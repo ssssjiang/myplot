@@ -1,7 +1,7 @@
 import numpy as np
-from myslam import MyslamException
+from myplot_tools import MyException
 
-class GeometryException(MyslamException):
+class GeometryException(MyException):
     pass
 
 def umeyama_alignment(x, y, with_scale=False):

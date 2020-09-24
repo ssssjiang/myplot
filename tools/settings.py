@@ -4,7 +4,7 @@ import json
 import logging
 import os
 
-from myslam import MyslamException
+from myplot_tools import MyException
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +12,7 @@ PACKAGE_BASE_PATH = os.path.abspath(__file__ + "/../../")
 DEFAULT_PATH = os.path.join(PACKAGE_BASE_PATH, "settings.json")
 
 
-class SettingsException(MyslamException):
+class SettingsException(MyException):
     pass
 
 
