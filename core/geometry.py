@@ -57,3 +57,6 @@ def umeyama_alignment(x, y, with_scale=False):
     t = mean_y - np.multiply(c, r.dot(mean_x))
 
     return r, t, c
+
+def accumulated_distances(x):
+    return np.concatenate((np.array([0]), np.cumsum(np.linalg.norm(x[:-1] - x[1:], axis=1))))
