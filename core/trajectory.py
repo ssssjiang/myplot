@@ -33,7 +33,7 @@ class PosePath3D(object):
             raise TrajectoryException("must provide at least positions_xyz "
                                       "& orientations_quat_wxyz or poses_se3")
         if positions_xyz is not None:
-            self._position_xyz = np.array(positions_xyz)
+            self._positions_xyz = np.array(positions_xyz)
         if orientations_quat_wxyz is not None:
             self._orientations_quat_wxyz = np.array(orientations_quat_wxyz)
         if poses_se3 is not None:
@@ -51,28 +51,122 @@ class PosePath3D(object):
         equal = True
         equal &= all([
             np.allclose(p1, p2)
-            for p1, p2 in zip(self._poses_se3, other._poses_se3)
+            for p1, p2 in zip(self.poses_se3, other.poses_se3)
         ])
-        equal &= np.allclose(self.orientations_quat_wxyz)
+        equal &= np.allclose(self.orientations_quat_wxyz,
+                             other.orientations_quat_wxyz)
+        equal &= np.allclose(self.positions_xyz, other.positions_xyz)
+        return equal
 
+    def __ne__(self, other):
+        return not self == other
 
     @property
     def positions_xyz(self):
         if not hasattr(self, "_positions_xyz"):
             assert hasattr(self, "_poses_se3")
-            self._position_xyz = np.array([p[:3, 3] for p in self._poses_se3])
-        return self._position_xyz
+            self._positions_xyz = np.array([p[:3, 3] for p in self._poses_se3])
+        return self._positions_xyz
 
     @property
     def distances(self):
-        return geometry.ac
+        return geometry.accumulated_distances(self.positions_xyz)
+
+    @property
+    def orientations_quat_wxyz(self):
+        if not hasattr(self, "_orientation_quat_wxyz"):
+            assert hasattr(self, "_poses_se3")
+            self._orientations_quat_wxyz \
+                =np.array([tr.quaternion_from_matrix(p)
+                           for p in self._poses_se3])
+        return self._orientations_quat_wxyz
+
+    def get_orientations_euler(self, axes='sxyz'):
+        if hasattr(self, "_poses_se3"):
+            return np.array(
+                [tr.euler_from_matrix(p, axes=axes) for p in self._poses_se3])
+        elif hasattr(self, "_orientations_quat_wxyz"):
+            return np.array([
+                tr.euler_from_quaternion(q, axes=axes)
+                for q in self._orientations_quat_wxyz
+            ])
+
+    @property
+    def poses_se3(self):
+        if not hasattr(self, "_poses_se3"):
+            assert hasattr(self, "_positions_xyz")
+            assert hasattr(self, "_orientations_quat_wxyz")
+            self._poses_se3 \
+                = xyz_quat_wxyz_to_se3_poses(self.positions_xyz, self.orientations_quat_wxyz)
+        return  self._poses_se3
 
     @property
     def num_poses(self):
         if hasattr(self, "_poses_se3"):
             return len(self._poses_se3)
         else:
-            return self.position_xyz.shape[0]
+            return self.positions_xyz.shape[0]
+
+    @property
+    def path_length(self):
+        """
+        calculates the path length(arc-length)
+        :return: path length in meters
+        """
+        return float(geometry.arc_len(self.positions_xyz))
+
+    def transform(self, t, right_mul=False, propagate=False):
+        if right_mul and not propagate:
+            self._poses_se3 = [np.dot(p, t) for p in self.poses_se3]
+        elif right_mul and propagate:
+            ids = np.arange(0, self.num_poses, 1)
+            rel_poses = [
+                lie.relative_se3(self.poses_se3[i], self.poses_se3[j]).dot(t)
+                for i, j in zip(ids, ids[1:])
+            ]
+            self._poses_se3 = [self.poses_se3[0]]
+            for i, j in zip(id[:-1], ids):
+                self._poses_se3.append(self._poses_se3[j].dot(rel_poses[i]))
+        else:
+            self._poses_se3 = [np.dot(t, p) for p in self.poses_se3]
+
+        self._positions_xyz, self._orientations_quat_wxyz \
+            = se3_poses_to_xyz_quat_wxyz(self.poses_se3)
+
+    def scale(self, s):
+        """
+        apply a scaling to the whole path
+        :param s: scale factor
+        :return:
+        """
+        if hasattr(self, "_poses_se3"):
+            self._poses_se3 = [
+                lie.se3(p[:3, :3], s * p[:3, 3]) for p in self._poses_se3
+            ]
+        if hasattr(self, "_positions_xyz"):
+            self._positions_xyz = s * self._positions_xyz
+
+    def reduce_to_ids(self, ids):
+        if hasattr(self, "_positions_xyz"):
+            self._positions_xyz = self._positions_xyz[ids]
+        if hasattr(self, "_orientations_quat_wxyz"):
+            self._orientations_quat_wxyz = self._orientations_quat_wxyz[ids]
+        if hasattr(self, "_poses_se3"):
+            self._poses_se3 = [self._poses_se3[idx] for idx in ids]
+
+    def get_infos(self):
+        """
+        :return: dictionary with some infos about the path
+        """
+        return {
+            "nr. of poses": self.num_poses,
+            "path length (m)": self.path_length,
+            "pos_start (m)": self.positions_xyz[0],
+            "pos_end (m)": self.positions_xyz[-1]
+        }
+
+    def get_statistics(self):
+        return {}  # no idea yet
 
 
 class PoseTrajectory3D(PosePath3D, object):
@@ -178,7 +272,6 @@ def align_trajectory(traj, traj_ref, correct_scale=False,
         return traj_aligned, r_a, t_a, s
     else:
         return traj_aligned
-
 
 
 

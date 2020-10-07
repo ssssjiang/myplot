@@ -58,5 +58,14 @@ def umeyama_alignment(x, y, with_scale=False):
 
     return r, t, c
 
+
+def arc_len(x):
+    """
+    :param x:
+    :return: the (discrete approximated) arc-length of the point sequence
+    """
+    return np.sum(np.linalg.norm(x[:-1] - x[1:], axis=1))
+
+
 def accumulated_distances(x):
     return np.concatenate((np.array([0]), np.cumsum(np.linalg.norm(x[:-1] - x[1:], axis=1))))
