@@ -184,3 +184,5 @@ def draw_dense_descriptors(*maps):
     _min = np.min([np.min(p) for p in projected])
     _max = np.max([np.max(p) for p in projected])
     return [(p - _min) / (_max - _min) for p in projected]
+
+

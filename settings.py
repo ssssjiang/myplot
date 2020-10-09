@@ -1,1 +1,2 @@
-DATA_PATH = '/home/songshu/dataset'
+DATA_PATH = '/persist/hfnet_ws/'
+EXPER_PATH = '/persist/hfnet_ws/model'
